@@ -1,13 +1,11 @@
 -- ============================================================
 --  HBSHUD  –  Client
 -- ============================================================
-local QBX         = exports.qbx_core
-local PlayerData  = {}
-local HUDVisible  = Config.DefaultVisible
-local seatbeltOn  = false
-local oxygenLevel = 100
+local QBX           = exports.qbx_core
+local PlayerData    = {}
+local HUDVisible    = Config.DefaultVisible
+local oxygenLevel   = 100
 local wasUnderwater = false
-local lastVehicle = 0
 
 -- ─── Helper ─────────────────────────────────────────────────
 local function sendConfig()
@@ -15,14 +13,11 @@ local function sendConfig()
         action = 'init',
         visible = HUDVisible,
         config  = {
-            theme          = Config.Theme,
-            barColors      = Config.BarColors,
-            lowThreshold   = Config.LowThreshold,
-            speedUnit      = Config.SpeedUnit,
-            showBars       = Config.ShowBars,
-            showPlayerInfo = Config.ShowPlayerInfo,
-            showLocation   = Config.ShowLocation,
-            showVehicleHUD = Config.ShowVehicleHUD,
+            theme        = Config.Theme,
+            barColors    = Config.BarColors,
+            lowThreshold = Config.LowThreshold,
+            showBars     = Config.ShowBars,
+            showLocation = Config.ShowLocation,
         },
     })
 end
@@ -47,18 +42,6 @@ AddEventHandler('QBXCore:client:playerLoggedOut', function()
     SendNUIMessage({ action = 'setVisible', visible = false })
 end)
 
-AddEventHandler('QBXCore:client:onJobUpdate', function(job)
-    if PlayerData then
-        PlayerData.job = job
-    end
-end)
-
-AddEventHandler('QBXCore:client:onGangUpdate', function(gang)
-    if PlayerData then
-        PlayerData.gang = gang
-    end
-end)
-
 -- ─── Commands & keybinds ────────────────────────────────────
 RegisterCommand('togglehud', function()
     HUDVisible = not HUDVisible
@@ -66,18 +49,6 @@ RegisterCommand('togglehud', function()
 end, false)
 
 RegisterKeyMapping('togglehud', 'Toggle HUD Visibility', 'keyboard', Config.ToggleKey)
-
-RegisterCommand('seatbelt', function()
-    local ped = PlayerPedId()
-    if GetVehiclePedIsIn(ped, false) == 0 then return end
-
-    seatbeltOn = not seatbeltOn
-    local sound = seatbeltOn and 'SEATBELT_ON' or 'SEATBELT_OFF'
-    PlaySoundFrontend(-1, sound, 'HUD_FRONTEND_DEFAULT_SOUNDSET', false)
-    SendNUIMessage({ action = 'updateSeatbelt', on = seatbeltOn })
-end, false)
-
-RegisterKeyMapping('seatbelt', 'Toggle Seatbelt', 'keyboard', Config.SeatbeltKey)
 
 -- ─── NUI Callbacks ──────────────────────────────────────────
 RegisterNUICallback('hudReady', function(_, cb)
@@ -91,10 +62,10 @@ CreateThread(function()
         Wait(200)
         local ped = PlayerPedId()
         if IsPedSwimmingUnderWater(ped) then
-            wasUnderwater  = true
-            oxygenLevel    = math.max(0, oxygenLevel - 2)
+            wasUnderwater = true
+            oxygenLevel   = math.max(0, oxygenLevel - 2)
         elseif oxygenLevel < 100 then
-            oxygenLevel    = math.min(100, oxygenLevel + 4)
+            oxygenLevel   = math.min(100, oxygenLevel + 4)
             if oxygenLevel >= 100 then wasUnderwater = false end
         end
     end
@@ -115,9 +86,9 @@ CreateThread(function()
         local armor  = GetPedArmour(ped)                         -- 0-100
 
         local meta   = pData.metadata or {}
-        local hunger = math.floor(meta.hunger  or 100)
-        local thirst = math.floor(meta.thirst  or 100)
-        local stress = math.floor(meta.stress  or 0)
+        local hunger = math.floor(meta.hunger or 100)
+        local thirst = math.floor(meta.thirst or 100)
+        local stress = math.floor(meta.stress or 0)
         local underwater = IsPedSwimmingUnderWater(ped)
 
         SendNUIMessage({
@@ -130,55 +101,6 @@ CreateThread(function()
             oxygen     = math.floor(oxygenLevel),
             underwater = underwater,
         })
-
-        ::continue::
-    end
-end)
-
--- ─── Vehicle thread (100 ms for smooth speed) ───────────────
-CreateThread(function()
-    while true do
-        Wait(100)
-        if not HUDVisible or not Config.ShowVehicleHUD then goto continue end
-
-        local ped = PlayerPedId()
-        local veh = GetVehiclePedIsIn(ped, false)
-
-        if veh ~= 0 then
-            -- Reset seatbelt on new vehicle
-            if veh ~= lastVehicle then
-                lastVehicle  = veh
-                seatbeltOn   = false
-            end
-
-            local speed = GetEntitySpeed(veh)
-            local displaySpeed = Config.SpeedUnit == 'mph'
-                and math.floor(speed * 2.23694)
-                or  math.floor(speed * 3.6)
-
-            local fuel         = math.floor(GetVehicleFuelLevel(veh))
-            local engineHealth = math.floor(GetVehicleEngineHealth(veh) / 10)  -- 0-100
-            local gear         = GetVehicleCurrentGear(veh)
-            local engineOn     = GetIsVehicleEngineRunning(veh)
-
-            SendNUIMessage({
-                action        = 'updateVehicle',
-                inVehicle     = true,
-                speed         = displaySpeed,
-                speedUnit     = Config.SpeedUnit,
-                fuel          = fuel,
-                engineHealth  = engineHealth,
-                engineOn      = engineOn,
-                seatbelt      = seatbeltOn,
-                gear          = gear,
-            })
-        else
-            if lastVehicle ~= 0 then
-                lastVehicle = 0
-                seatbeltOn  = false
-                SendNUIMessage({ action = 'updateVehicle', inVehicle = false })
-            end
-        end
 
         ::continue::
     end
@@ -203,32 +125,6 @@ CreateThread(function()
             street   = street,
             crossing = crossing,
             zone     = zone,
-        })
-
-        ::continue::
-    end
-end)
-
--- ─── Player info thread (5 s) ───────────────────────────────
-CreateThread(function()
-    while true do
-        Wait(5000)
-        if not HUDVisible or not Config.ShowPlayerInfo then goto continue end
-
-        local pData = QBX:GetPlayerData()
-        if not pData then goto continue end
-
-        local ci   = pData.charinfo or {}
-        local name = ((ci.firstname or '') .. ' ' .. (ci.lastname or '')):match('^%s*(.-)%s*$')
-
-        SendNUIMessage({
-            action    = 'updatePlayerInfo',
-            name      = name,
-            job       = pData.job       and pData.job.label                    or 'Unemployed',
-            jobGrade  = pData.job       and pData.job.grade and pData.job.grade.name or '',
-            gang      = pData.gang      and pData.gang.label                   or nil,
-            cash      = pData.money     and pData.money.cash                   or 0,
-            bank      = pData.money     and pData.money.bank                   or 0,
         })
 
         ::continue::

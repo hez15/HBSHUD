@@ -14,10 +14,8 @@ const state = {
 /* ─── DOM cache ─────────────────────────────────────────────── */
 const el = {
     // Panels
-    playerPanel:   document.getElementById('player-panel'),
     locationPanel: document.getElementById('location-panel'),
     statusPanel:   document.getElementById('status-panel'),
-    vehiclePanel:  document.getElementById('vehicle-panel'),
 
     // Status items (for .low class toggling)
     items: {
@@ -39,25 +37,10 @@ const el = {
         oxygen: document.getElementById('ring-oxygen'),
     },
 
-    // Vehicle
-    speedValue:        document.getElementById('speed-value'),
-    speedUnit:         document.getElementById('speed-unit'),
-    fuelBar:           document.getElementById('fuel-bar'),
-    fuelValue:         document.getElementById('fuel-value'),
-    engineIndicator:   document.getElementById('engine-indicator'),
-    seatbeltIndicator: document.getElementById('seatbelt-indicator'),
-    gearValue:         document.getElementById('gear-value'),
-
     // Location
     streetName:   document.getElementById('street-name'),
     crossingName: document.getElementById('crossing-name'),
     zoneName:     document.getElementById('zone-name'),
-
-    // Player info
-    playerName: document.getElementById('player-name'),
-    playerJob:  document.getElementById('player-job'),
-    playerCash: document.getElementById('player-cash'),
-    playerBank: document.getElementById('player-bank'),
 };
 
 /* ─── Helpers ───────────────────────────────────────────────── */
@@ -78,13 +61,6 @@ function setRing(ring, item, value, invert = false) {
     item.classList.toggle('low', isLow);
 }
 
-function formatMoney(n) {
-    const abs = Math.abs(n);
-    if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-    if (abs >= 1_000)     return `$${(n / 1_000).toFixed(1)}K`;
-    return `$${Math.floor(n)}`;
-}
-
 function show(element) { element.classList.remove('hidden'); }
 function hide(element) { element.classList.add('hidden');    }
 
@@ -94,13 +70,10 @@ window.addEventListener('message', ({ data }) => {
     const { action, ...rest } = data;
 
     switch (action) {
-        case 'init':          return handleInit(rest);
-        case 'setVisible':    return handleSetVisible(rest.visible);
-        case 'updateStats':   return handleStats(rest);
-        case 'updateVehicle': return handleVehicle(rest);
-        case 'updateLocation':return handleLocation(rest);
-        case 'updatePlayerInfo': return handlePlayerInfo(rest);
-        case 'updateSeatbelt':   return handleSeatbelt(rest.on);
+        case 'init':           return handleInit(rest);
+        case 'setVisible':     return handleSetVisible(rest.visible);
+        case 'updateStats':    return handleStats(rest);
+        case 'updateLocation': return handleLocation(rest);
     }
 });
 
@@ -131,25 +104,20 @@ function handleInit(data) {
         if (b.thirst) root.style.setProperty('--c-thirst', b.thirst);
         if (b.stress) root.style.setProperty('--c-stress', b.stress);
         if (b.oxygen) root.style.setProperty('--c-oxygen', b.oxygen);
-        if (b.fuel)   root.style.setProperty('--c-fuel',   b.fuel);
     }
-
-    // Respect feature flags
-    if (cfg.showPlayerInfo === false) hide(el.playerPanel);
-    if (cfg.showLocation   === false) hide(el.locationPanel);
 
     handleSetVisible(state.visible);
 }
 
 function handleSetVisible(visible) {
     state.visible = visible;
-    const mainPanels = [el.playerPanel, el.locationPanel, el.statusPanel];
 
     if (visible) {
-        mainPanels.forEach(p => show(p));
+        show(el.locationPanel);
+        show(el.statusPanel);
     } else {
-        mainPanels.forEach(p => hide(p));
-        hide(el.vehiclePanel);
+        hide(el.locationPanel);
+        hide(el.statusPanel);
     }
 }
 
@@ -172,43 +140,6 @@ function handleStats(data) {
     }
 }
 
-function handleVehicle(data) {
-    if (!state.visible) return;
-
-    if (!data.inVehicle) {
-        hide(el.vehiclePanel);
-        return;
-    }
-
-    show(el.vehiclePanel);
-
-    // Speed
-    el.speedValue.textContent = data.speed    ?? 0;
-    el.speedUnit.textContent  = (data.speedUnit ?? 'mph').toUpperCase();
-
-    // Fuel
-    const fuel = data.fuel ?? 100;
-    el.fuelBar.style.width     = `${fuel}%`;
-    el.fuelValue.textContent   = Math.floor(fuel);
-    el.fuelBar.style.background =
-        fuel < 15  ? 'var(--c-low)'     :
-        fuel < 30  ? 'var(--c-warning)' :
-                     'var(--c-fuel)';
-
-    // Engine
-    const eng = data.engineHealth ?? 100;
-    el.engineIndicator.classList.remove('active', 'warning');
-    el.engineIndicator.classList.add(eng > 50 ? 'active' : 'warning');
-
-    // Seatbelt
-    handleSeatbelt(data.seatbelt);
-
-    // Gear (0 = reverse)
-    if (data.gear !== undefined) {
-        el.gearValue.textContent = data.gear === 0 ? 'R' : data.gear;
-    }
-}
-
 function handleLocation(data) {
     if (!state.visible) return;
 
@@ -221,22 +152,6 @@ function handleLocation(data) {
     } else {
         hide(el.crossingName);
     }
-}
-
-function handlePlayerInfo(data) {
-    if (!state.visible) return;
-
-    el.playerName.textContent = data.name || 'Unknown';
-    el.playerJob.textContent  = data.jobGrade
-        ? `${data.job} · ${data.jobGrade}`
-        : (data.job || 'Unemployed');
-    el.playerCash.textContent = formatMoney(data.cash || 0);
-    el.playerBank.textContent = formatMoney(data.bank || 0);
-}
-
-function handleSeatbelt(isOn) {
-    el.seatbeltIndicator.classList.remove('active', 'warning');
-    el.seatbeltIndicator.classList.add(isOn ? 'active' : 'warning');
 }
 
 /* ─── Notify client the NUI is ready ───────────────────────── */
