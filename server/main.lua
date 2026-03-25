@@ -1,0 +1,5 @@
+-- ============================================================
+--  HBSHUD  –  Server
+--  Minimal server side — all stats are read client-side
+--  via exports.qbx_core:GetPlayerData().
+-- ============================================================
