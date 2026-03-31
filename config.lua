@@ -38,4 +38,3 @@ Config.ShowBars = {
     oxygen  = true,   -- auto-hides when not underwater
 }
 
-Config.ShowLocation = true   -- Street / zone overlay (bottom-left)

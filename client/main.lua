@@ -4,6 +4,7 @@
 local QBX           = exports.qbx_core
 local PlayerData    = {}
 local HUDVisible    = Config.DefaultVisible
+local playerLoaded  = false
 local oxygenLevel   = 100
 local wasUnderwater = false
 
@@ -17,28 +18,35 @@ local function sendConfig()
             barColors    = Config.BarColors,
             lowThreshold = Config.LowThreshold,
             showBars     = Config.ShowBars,
-            showLocation = Config.ShowLocation,
         },
     })
 end
 
 -- ─── Initialise after resource starts ───────────────────────
+-- Handles the case where the resource is restarted mid-session
 AddEventHandler('onClientResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
-    SetTimeout(500, function()
-        PlayerData = QBX:GetPlayerData() or {}
-        sendConfig()
+    SetTimeout(1000, function()
+        local pData = QBX:GetPlayerData()
+        -- Only mark as loaded if the data is actually populated
+        if pData and pData.citizenid then
+            PlayerData   = pData
+            playerLoaded = true
+            sendConfig()
+        end
     end)
 end)
 
 -- ─── QBX Core events ────────────────────────────────────────
 AddEventHandler('QBXCore:client:onPlayerLoaded', function(pData)
-    PlayerData = pData
+    PlayerData   = pData
+    playerLoaded = true
     sendConfig()
 end)
 
 AddEventHandler('QBXCore:client:playerLoggedOut', function()
-    PlayerData = {}
+    PlayerData   = {}
+    playerLoaded = false
     SendNUIMessage({ action = 'setVisible', visible = false })
 end)
 
@@ -75,21 +83,26 @@ end)
 CreateThread(function()
     while true do
         Wait(333)
-        if not HUDVisible then goto continue end
+        -- Don't send data until the character is actually loaded
+        if not HUDVisible or not playerLoaded then goto continue end
 
         local ped   = PlayerPedId()
         local pData = QBX:GetPlayerData()
-        if not pData then goto continue end
 
+        -- QBX returns {} before character loads — guard with citizenid
+        if not pData or not pData.citizenid then goto continue end
+
+        -- Health: native returns 100–200; subtract 100 to get 0–100
         local rawHp  = GetEntityHealth(ped)
-        local health = math.floor(math.max(0, (rawHp - 100)))   -- 0-100
-        local armor  = GetPedArmour(ped)                         -- 0-100
+        local health = math.floor(math.max(0, rawHp - 100))
+        local armor  = GetPedArmour(ped)
 
         local meta   = pData.metadata or {}
-        local hunger = math.floor(meta.hunger or 100)
-        local thirst = math.floor(meta.thirst or 100)
-        local stress = math.floor(meta.stress or 0)
-        local underwater = IsPedSwimmingUnderWater(ped)
+        -- QBX stores hunger/thirst as 0-100 (100 = full, 0 = starving)
+        local hunger = math.floor(meta.hunger  or 100)
+        local thirst = math.floor(meta.thirst  or 100)
+        -- Stress: 0 = calm, 100 = maxed
+        local stress = math.floor(meta.stress  or 0)
 
         SendNUIMessage({
             action     = 'updateStats',
@@ -99,32 +112,7 @@ CreateThread(function()
             thirst     = thirst,
             stress     = stress,
             oxygen     = math.floor(oxygenLevel),
-            underwater = underwater,
-        })
-
-        ::continue::
-    end
-end)
-
--- ─── Location thread (2 s) ──────────────────────────────────
-CreateThread(function()
-    while true do
-        Wait(2000)
-        if not HUDVisible or not Config.ShowLocation then goto continue end
-
-        local ped  = PlayerPedId()
-        local pos  = GetEntityCoords(ped)
-        local sh, ch = GetStreetNameAtCoord(pos.x, pos.y, pos.z)
-
-        local street   = GetStreetNameFromHashKey(sh)
-        local crossing = ch ~= 0 and GetStreetNameFromHashKey(ch) or ''
-        local zone     = GetLabelText(GetNameOfZone(pos.x, pos.y, pos.z))
-
-        SendNUIMessage({
-            action   = 'updateLocation',
-            street   = street,
-            crossing = crossing,
-            zone     = zone,
+            underwater = IsPedSwimmingUnderWater(ped),
         })
 
         ::continue::

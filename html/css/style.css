@@ -18,13 +18,8 @@ html, body {
 
 /* ─── CSS Custom Properties (theme) ─────────────────────── */
 :root {
-    --bg:           rgba(6, 6, 18, 0.90);
-    --border:       rgba(124, 58, 237, 0.20);
-    --shadow:       0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(124,58,237,0.08);
-    --radius:       12px;
-    --text:         #f1f5f9;
-    --text-muted:   #94a3b8;
-    --accent:       #7c3aed;
+    --border:   rgba(124, 58, 237, 0.20);
+    --accent:   #7c3aed;
 
     /* Status ring colours */
     --c-health:  #10b981;
@@ -34,58 +29,6 @@ html, body {
     --c-stress:  #a855f7;
     --c-oxygen:  #0ea5e9;
     --c-low:     #ef4444;
-    --c-ok:      #22c55e;
-}
-
-/* ─── Shared panel base ──────────────────────────────────── */
-.panel {
-    position: fixed;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Location Panel  (bottom-left)
-   ═══════════════════════════════════════════════════════════ */
-#location-panel {
-    bottom: 215px;
-    left: 10px;
-    padding: 8px 12px;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    animation: fadeIn 0.4s ease both;
-}
-
-.loc-icon {
-    color: var(--accent);
-    margin-top: 1px;
-    flex-shrink: 0;
-}
-
-.loc-text { display: flex; flex-direction: column; gap: 2px; }
-
-.street-name {
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.crossing-name {
-    color: var(--text-muted);
-    font-size: 10px;
-}
-
-.zone-name {
-    color: var(--accent);
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -97,15 +40,15 @@ html, body {
     left: 50%;
     transform: translateX(-50%);
     display: grid;
-    grid-template-columns: repeat(3, 50px);
-    grid-template-rows:    repeat(2, 50px);
-    gap: 6px;
+    grid-template-columns: repeat(3, 65px);
+    grid-template-rows:    repeat(2, 65px);
+    gap: 8px;
 }
 
 /* Individual circle item */
 .status-item {
     position: relative;
-    width: 50px; height: 50px;
+    width: 65px; height: 65px;
 }
 
 .status-circle {
@@ -127,13 +70,13 @@ html, body {
 
 .ring-track {
     fill: none;
-    stroke: rgba(255,255,255,0.05);
-    stroke-width: 3;
+    stroke: rgba(255,255,255,0.12);
+    stroke-width: 3.5;
 }
 
 .ring-fill {
     fill: none;
-    stroke-width: 3;
+    stroke-width: 3.5;
     stroke-linecap: round;
     transition: stroke-dasharray 0.45s cubic-bezier(.4,0,.2,1),
                 stroke           0.45s ease;
@@ -151,26 +94,18 @@ html, body {
 .status-icon {
     position: absolute;
     display: flex; align-items: center; justify-content: center;
-    color: rgba(255,255,255,0.70);
+    color: rgba(255,255,255,0.80);
     z-index: 1;
     transition: color 0.3s ease;
 }
-.status-icon svg { width: 16px; height: 16px; }
+.status-icon svg { width: 20px; height: 20px; }
 
 /* ── Low / danger state ─────────────────────────────────── */
-.status-item.low .ring-fill         { stroke: var(--c-low) !important; }
-.status-item.low .status-icon       { color: var(--c-low); }
-.status-item.low .status-circle     { animation: pulseLow 1.6s ease-in-out infinite; }
+.status-item.low .ring-fill   { stroke: var(--c-low) !important; }
+.status-item.low .status-icon { color: var(--c-low); }
+.status-item.low .status-circle { animation: pulseLow 1.6s ease-in-out infinite; }
 
 @keyframes pulseLow {
     0%,100% { opacity: 1; }
-    50%     { opacity: 0.6; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Keyframe Animations
-   ═══════════════════════════════════════════════════════════ */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    50%     { opacity: 0.55; }
 }

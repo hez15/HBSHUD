@@ -7,15 +7,12 @@
 /* ─── State ────────────────────────────────────────────────── */
 const state = {
     visible:      true,
-    config:       null,
     lowThreshold: 25,
 };
 
 /* ─── DOM cache ─────────────────────────────────────────────── */
 const el = {
-    // Panels
-    locationPanel: document.getElementById('location-panel'),
-    statusPanel:   document.getElementById('status-panel'),
+    statusPanel: document.getElementById('status-panel'),
 
     // Status items (for .low class toggling)
     items: {
@@ -36,11 +33,6 @@ const el = {
         stress: document.getElementById('ring-stress'),
         oxygen: document.getElementById('ring-oxygen'),
     },
-
-    // Location
-    streetName:   document.getElementById('street-name'),
-    crossingName: document.getElementById('crossing-name'),
-    zoneName:     document.getElementById('zone-name'),
 };
 
 /* ─── Helpers ───────────────────────────────────────────────── */
@@ -70,10 +62,9 @@ window.addEventListener('message', ({ data }) => {
     const { action, ...rest } = data;
 
     switch (action) {
-        case 'init':           return handleInit(rest);
-        case 'setVisible':     return handleSetVisible(rest.visible);
-        case 'updateStats':    return handleStats(rest);
-        case 'updateLocation': return handleLocation(rest);
+        case 'init':        return handleInit(rest);
+        case 'setVisible':  return handleSetVisible(rest.visible);
+        case 'updateStats': return handleStats(rest);
     }
 });
 
@@ -81,19 +72,15 @@ window.addEventListener('message', ({ data }) => {
 
 function handleInit(data) {
     state.visible      = data.visible ?? true;
-    state.config       = data.config  ?? {};
     state.lowThreshold = data.config?.lowThreshold ?? 25;
 
-    // Apply theme CSS variables
-    const cfg = data.config ?? {};
+    const cfg  = data.config ?? {};
     const root = document.documentElement;
 
     if (cfg.theme) {
         const t = cfg.theme;
-        if (t.accent)     root.style.setProperty('--accent', t.accent);
-        if (t.background) root.style.setProperty('--bg',     t.background);
-        if (t.border)     root.style.setProperty('--border', t.border);
-        if (t.text)       root.style.setProperty('--text',   t.text);
+        if (t.accent) root.style.setProperty('--accent', t.accent);
+        if (t.border) root.style.setProperty('--border', t.border);
     }
 
     if (cfg.barColors) {
@@ -111,14 +98,7 @@ function handleInit(data) {
 
 function handleSetVisible(visible) {
     state.visible = visible;
-
-    if (visible) {
-        show(el.locationPanel);
-        show(el.statusPanel);
-    } else {
-        hide(el.locationPanel);
-        hide(el.statusPanel);
-    }
+    visible ? show(el.statusPanel) : hide(el.statusPanel);
 }
 
 function handleStats(data) {
@@ -128,7 +108,7 @@ function handleStats(data) {
     setRing(el.rings.armor,  el.items.armor,  data.armor  ?? 0);
     setRing(el.rings.hunger, el.items.hunger, data.hunger ?? 100);
     setRing(el.rings.thirst, el.items.thirst, data.thirst ?? 100);
-    // Stress: high stress = danger (invert = true)
+    // Stress: high value = danger (invert = true)
     setRing(el.rings.stress, el.items.stress, data.stress ?? 0, true);
 
     // Oxygen only visible when underwater
@@ -140,27 +120,11 @@ function handleStats(data) {
     }
 }
 
-function handleLocation(data) {
-    if (!state.visible) return;
-
-    el.streetName.textContent = data.street || 'Unknown Street';
-    el.zoneName.textContent   = data.zone   || '';
-
-    if (data.crossing && data.crossing.trim() !== '') {
-        el.crossingName.textContent = `& ${data.crossing}`;
-        show(el.crossingName);
-    } else {
-        hide(el.crossingName);
-    }
-}
-
 /* ─── Notify client the NUI is ready ───────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
     fetch(`https://${GetParentResourceName()}/hudReady`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({}),
-    }).catch(() => {
-        // Running outside FiveM (browser preview) — ignore fetch errors
-    });
+    }).catch(() => {});
 });
