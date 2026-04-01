@@ -32,6 +32,25 @@ html, body {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Minimap Border
+   Covers the GTA5 minimap (bottom-left).
+   Values are tuned for 16:9 — adjust if your server uses a
+   different aspect ratio or safe-zone setting.
+   ═══════════════════════════════════════════════════════════ */
+#minimap-border {
+    position: fixed;
+    bottom: 0.28vh;
+    left:   0.16vw;
+    width:  15.6vw;
+    height: 16.2vh;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.35),
+                inset 0 0 10px rgba(124, 58, 237, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════
    Status Circles Panel  (bottom-centre)
    ═══════════════════════════════════════════════════════════ */
 #status-panel {

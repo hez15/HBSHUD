@@ -12,7 +12,8 @@ const state = {
 
 /* ─── DOM cache ─────────────────────────────────────────────── */
 const el = {
-    statusPanel: document.getElementById('status-panel'),
+    statusPanel:    document.getElementById('status-panel'),
+    minimapBorder:  document.getElementById('minimap-border'),
 
     // Status items (for .low class toggling)
     items: {
@@ -98,7 +99,8 @@ function handleInit(data) {
 
 function handleSetVisible(visible) {
     state.visible = visible;
-    visible ? show(el.statusPanel) : hide(el.statusPanel);
+    visible ? show(el.statusPanel)   : hide(el.statusPanel);
+    visible ? show(el.minimapBorder) : hide(el.minimapBorder);
 }
 
 function handleStats(data) {
