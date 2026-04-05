@@ -8,6 +8,7 @@
 const state = {
     visible:      true,
     lowThreshold: 25,
+    showBars:     { health: true, armor: true, hunger: true, thirst: true, stress: true, oxygen: true },
 };
 
 /* ─── DOM cache ─────────────────────────────────────────────── */
@@ -80,8 +81,14 @@ function handleInit(data) {
 
     if (cfg.theme) {
         const t = cfg.theme;
-        if (t.accent) root.style.setProperty('--accent', t.accent);
-        if (t.border) root.style.setProperty('--border', t.border);
+        if (t.accent) {
+            root.style.setProperty('--accent', t.accent);
+            root.style.setProperty('--accent-glow', t.accent + '59');       // ~35% opacity
+            root.style.setProperty('--accent-glow-inset', t.accent + '14'); // ~8% opacity
+        }
+        if (t.border)     root.style.setProperty('--border', t.border);
+        if (t.background) root.style.setProperty('--background', t.background);
+        if (t.text)       root.style.setProperty('--text', t.text);
     }
 
     if (cfg.barColors) {
@@ -92,6 +99,14 @@ function handleInit(data) {
         if (b.thirst) root.style.setProperty('--c-thirst', b.thirst);
         if (b.stress) root.style.setProperty('--c-stress', b.stress);
         if (b.oxygen) root.style.setProperty('--c-oxygen', b.oxygen);
+    }
+
+    if (cfg.showBars) {
+        state.showBars = cfg.showBars;
+        for (const [key, item] of Object.entries(el.items)) {
+            if (key === 'oxygen') continue; // oxygen has its own visibility logic
+            if (!state.showBars[key]) hide(item); else show(item);
+        }
     }
 
     handleSetVisible(state.visible);
@@ -106,19 +121,22 @@ function handleSetVisible(visible) {
 function handleStats(data) {
     if (!state.visible) return;
 
-    setRing(el.rings.health, el.items.health, data.health ?? 100);
-    setRing(el.rings.armor,  el.items.armor,  data.armor  ?? 0);
-    setRing(el.rings.hunger, el.items.hunger, data.hunger ?? 100);
-    setRing(el.rings.thirst, el.items.thirst, data.thirst ?? 100);
+    const sb = state.showBars;
+    if (sb.health) setRing(el.rings.health, el.items.health, data.health ?? 100);
+    if (sb.armor)  setRing(el.rings.armor,  el.items.armor,  data.armor  ?? 0);
+    if (sb.hunger) setRing(el.rings.hunger, el.items.hunger, data.hunger ?? 100);
+    if (sb.thirst) setRing(el.rings.thirst, el.items.thirst, data.thirst ?? 100);
     // Stress: high value = danger (invert = true)
-    setRing(el.rings.stress, el.items.stress, data.stress ?? 0, true);
+    if (sb.stress) setRing(el.rings.stress, el.items.stress, data.stress ?? 0, true);
 
-    // Oxygen only visible when underwater
-    if (data.underwater) {
-        show(el.items.oxygen);
-        setRing(el.rings.oxygen, el.items.oxygen, data.oxygen ?? 100);
-    } else {
-        hide(el.items.oxygen);
+    // Oxygen: visible when underwater OR still recovering, and not disabled
+    if (sb.oxygen) {
+        if (data.underwater || (data.oxygen ?? 100) < 100) {
+            show(el.items.oxygen);
+            setRing(el.rings.oxygen, el.items.oxygen, data.oxygen ?? 100);
+        } else {
+            hide(el.items.oxygen);
+        }
     }
 }
 
